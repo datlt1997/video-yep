@@ -1,0 +1,61 @@
+body {
+  margin: 0;
+  background: black;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+video.active {
+  display: block;
+}
+
+.hands {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+}
+
+.hand {
+  font-size: 80px;
+  opacity: 0.2;
+  transition: 0.4s;
+}
+
+.hand.active {
+  opacity: 1;
+  filter: drop-shadow(0 0 25px lime);
+}
+
+.hidden {
+  display: none;
+}
+
+/* CONTROL */
+.control {
+  color: white;
+  text-align: center;
+  padding-top: 40px;
+}
+
+.hand-btn {
+  font-size: 30px;
+  padding: 20px;
+  margin: 10px;
+}
+
+.hand-btn.active {
+  background: lime;
+  color: black;
+}
