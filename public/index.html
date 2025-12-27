@@ -1,28 +1,47 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>LED DISPLAY</title>
-  <link rel="stylesheet" href="/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Display</title>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
 </head>
-<body class="display">
+<body id="display-page">
 
-  <!-- VIDEO LAYERS -->
-  <video id="videoIdle" src="/videos/idle.mp4" autoplay loop muted></video>
-  <video id="videoCountdown" src="/videos/countdown.mp4" muted></video>
-  <video id="videoNext" src="/videos/next.mp4" muted></video>
+    <div id="display-container">
+        <!-- Video nền -->
+        <video id="bg-video" autoplay muted loop>
+            <source src="videos/idle.mp4" type="video/mp4">
+        </video>
 
-  <!-- HANDS -->
-  <div class="hands">
-    <div class="hand" data-id="1">✋</div>
-    <div class="hand" data-id="2">✋</div>
-    <div class="hand" data-id="3">✋</div>
-    <div class="hand" data-id="4">✋</div>
-    <div class="hand" data-id="5">✋</div>
-    <div class="hand" data-id="6">✋</div>
-  </div>
+        <!-- Lớp UI đè lên trên -->
+        <div id="ui-layer">
+            <h1 id="main-text">ABC</h1>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/script.js"></script>
+            <!-- 6 Bàn tay -->
+            <div id="hands-wrapper">
+                <!-- Ban đầu là fa-regular (rỗng), khi active thành fa-solid (đặc) -->
+                <i class="fa-regular fa-hand hand-icon" id="hand-0"></i>
+                <i class="fa-regular fa-hand hand-icon" id="hand-1"></i>
+                <i class="fa-regular fa-hand hand-icon" id="hand-2"></i>
+                <i class="fa-regular fa-hand hand-icon" id="hand-3"></i>
+                <i class="fa-regular fa-hand hand-icon" id="hand-4"></i>
+                <i class="fa-regular fa-hand hand-icon" id="hand-5"></i>
+            </div>
+        </div>
+
+        <!-- Countdown số (Nằm đè lên tất cả khi kích hoạt) -->
+        <div id="countdown-display">10
+            <audio id="countdown-audio" preload="auto">
+                <source src="sounds/countdown.mp3" type="audio/mpeg">
+            </audio>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

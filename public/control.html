@@ -1,26 +1,35 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>CONTROL</title>
-  <link rel="stylesheet" href="/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="control">
+<body id="control-page">
 
-  <h2>CHẠM ĐẶT TAY</h2>
+    <div class="control-panel">
+        <h2>Control Panel</h2>
+        
+        <!-- Bước 1: Hiện bàn tay -->
+        <button id="btn-show-hands" class="btn">START (Show Hands)</button>
 
-  <div class="hands">
-    <button class="hand-btn" data-id="1">✋ 1</button>
-    <button class="hand-btn" data-id="2">✋ 2</button>
-    <button class="hand-btn" data-id="3">✋ 3</button>
-    <button class="hand-btn" data-id="4">✋ 4</button>
-    <button class="hand-btn" data-id="5">✋ 5</button>
-    <button class="hand-btn" data-id="6">✋ 6</button>
-  </div>
+        <!-- Bước 2: Tương tác từng bàn tay -->
+        <div class="hand-controls">
+            <button class="hand-btn" data-index="0"><i class="fa-solid fa-hand"></i> 1</button>
+            <button class="hand-btn" data-index="1"><i class="fa-solid fa-hand"></i> 2</button>
+            <button class="hand-btn" data-index="2"><i class="fa-solid fa-hand"></i> 3</button>
+            <button class="hand-btn" data-index="3"><i class="fa-solid fa-hand"></i> 4</button>
+            <button class="hand-btn" data-index="4"><i class="fa-solid fa-hand"></i> 5</button>
+            <button class="hand-btn" data-index="5"><i class="fa-solid fa-hand"></i> 6</button>
+        </div>
 
-  <button id="reset">RESET</button>
+        <!-- Reset -->
+        <button id="btn-reset" class="btn btn-reset">RESET SYSTEM</button>
+    </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/script.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

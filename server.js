@@ -1,70 +1,39 @@
-const express = require("express")
-const app = express()
-const http = require("http").createServer(app)
-const io = require("socket.io")(http)
+const express = require('express');
+const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server);
 
-app.use(express.static("public"))
+// Serve static files from 'public' folder
+app.use(express.static('public'));
 
-let activeHands = []
-let state = "idle" 
-// idle | touch | countdown | next
+// Socket.io connection logic
+io.on('connection', (socket) => {
+    console.log('A user connected: ' + socket.id);
 
-io.on("connection", socket => {
+    // 1. Khi Control yêu cầu hiển thị bàn tay
+    socket.on('trigger-hands', () => {
+        io.emit('show-hands'); // Gửi lệnh cho Display
+    });
 
-  socket.on("register-display", () => {
-    activeHands = []
-    state = "idle"
-    io.emit("state-change", state)
-    io.emit("update-hands", [])
-  })
+    // 2. Khi Control chạm vào một bàn tay cụ thể (index: 0-5)
+    socket.on('toggle-hand', (data) => {
+        // data = { index: 0, status: true/false }
+        io.emit('update-hand', data);
+    });
 
-  socket.on("toggle-hand", hand => {
-    if (state === "countdown" || state === "next") return
+    // 3. Khi Control yêu cầu Reset
+    socket.on('trigger-reset', () => {
+        io.emit('reset-system');
+    });
 
-    if (activeHands.includes(hand)) {
-        activeHands = activeHands.filter(h => h !== hand)
-    } else {
-        activeHands.push(hand)
-    }
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
 
-    // 👉 CHỈ chuyển sang TOUCH khi có >=1 tay
-    if (activeHands.length > 0 && state === "idle") {
-        state = "touch"
-        io.emit("state-change", state)
-    }
-
-    // 👉 Nếu KHÔNG còn tay nào → quay về IDLE
-    if (activeHands.length === 0 && state === "touch") {
-        state = "idle"
-        io.emit("state-change", state)
-    }
-
-    io.emit("update-hands", activeHands)
-
-    // 👉 CHỈ khi ĐỦ 6 tay → COUNTDOWN
-    if (activeHands.length === 6 && state !== "countdown") {
-        state = "countdown"
-        io.emit("state-change", state)
-    }
-    })
-
-
-  socket.on("countdown-finished", () => {
-    state = "next"
-    activeHands = []
-    io.emit("state-change", state)
-    io.emit("update-hands", [])
-  })
-
-  socket.on("reset", () => {
-    activeHands = []
-    state = "idle"
-    io.emit("state-change", state)
-    io.emit("update-hands", [])
-  })
-})
-
-
-http.listen(3000, () => {
-  console.log("🚀 Server running http://localhost:3000")
-})
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});

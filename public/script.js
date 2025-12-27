@@ -1,101 +1,179 @@
-const socket = io()
+const socket = io();
+const isDisplay = document.body.id === 'display-page';
+const isControl = document.body.id === 'control-page';
 
-// ===== Detect page =====
-const isDisplay = document.body.classList.contains("display")
-
+/* =========================================
+   LOGIC CHO MÀN HÌNH DISPLAY (index.html)
+   ========================================= */
 if (isDisplay) {
-  socket.emit("register-display")
-}
+  const videoElem = document.getElementById('bg-video');
+  const mainText = document.getElementById('main-text');
+  const handsWrapper = document.getElementById('hands-wrapper');
+  const uiLayer = document.getElementById('ui-layer');
+  const countdownElem = document.getElementById('countdown-display');
+  const countdownAudio = document.getElementById('countdown-audio');
+  
+  // Flag để chặn tương tác khi đang đếm ngược
+  let isCountingDown = false;
 
+  socket.on('show-hands', () => {
+    mainText.classList.add('move-up');
+    handsWrapper.classList.add('show');
+  });
 
-// ===== VIDEO (DISPLAY ONLY) =====
-const videoIdle = isDisplay ? document.getElementById("videoIdle") : null
-const videoCountdown = isDisplay ? document.getElementById("videoCountdown") : null
-const videoNext = isDisplay ? document.getElementById("videoNext") : null
+  // XỬ LÝ BẬT/TẮT BÀN TAY
+  socket.on('update-hand', (data) => {
+    // Nếu đang đếm ngược rồi thì không cho chỉnh sửa tay nữa
+    if (isCountingDown) return;
 
-// ===== HANDS =====
-const handsWrap = document.querySelector(".hands")
-const hands = document.querySelectorAll(".hand")
-const buttons = document.querySelectorAll(".hand-btn")
-const resetBtn = document.getElementById("reset")
+    const { index, status } = data;
+    const hands = document.querySelectorAll('.hand-icon');
+    const hand = hands[index];
 
-// ===== DISPLAY VIDEO CONTROL =====
-function showVideo(video) {
-  if (!isDisplay || !video) return
+    if (hand) {
+      if (status) {
+        // BẬT
+        hand.classList.remove('fa-regular');
+        hand.classList.add('fa-solid', 'active');
+      } else {
+        // TẮT
+        hand.classList.remove('fa-solid', 'active');
+        hand.classList.add('fa-regular');
+      }
 
-  ;[videoIdle, videoCountdown, videoNext].forEach(v => {
-    if (!v) return
-    v.onended = null   // 🔥 clear callback cũ
-    v.pause()
-    v.currentTime = 0
-    v.classList.remove("active")
-  })
-
-  video.classList.add("active")
-  video.play().catch(() => {})
-}
-
-
-// ===== CONTROL =====
-buttons.forEach(btn => {
-  btn.onclick = () => {
-    socket.emit("toggle-hand", btn.dataset.id)
-  }
-})
-
-resetBtn && (resetBtn.onclick = () => socket.emit("reset"))
-
-// ===== SOCKET SYNC =====
-socket.on("sync", data => {
-  updateHands(data.activeHands)
-  handleState(data.state)
-})
-
-socket.on("update-hands", updateHands)
-socket.on("state-change", handleState)
-
-// ===== UPDATE HANDS =====
-function updateHands(activeHands = []) {
-  hands.forEach(hand => {
-    hand.classList.toggle(
-      "active",
-      activeHands.includes(hand.dataset.id)
-    )
-  })
-
-  buttons.forEach(btn => {
-    btn.classList.toggle(
-      "active",
-      activeHands.includes(btn.dataset.id)
-    )
-  })
-}
-
-// ===== HANDLE STATE (DISPLAY ONLY) =====
-function handleState(state) {
-  if (!isDisplay) return
-
-  if (state === "idle") {
-    // handsWrap?.classList.add("hidden")
-    showVideo(videoIdle)
-  }
-
-  if (state === "touch") {
-    handsWrap?.classList.remove("hidden")
-    // ❗ KHÔNG đổi video – vẫn là idle.mp4
-  }
-
-  if (state === "countdown") {
-    handsWrap?.classList.remove("hidden")
-    showVideo(videoCountdown)
-
-    videoCountdown.onended = () => {
-      socket.emit("countdown-finished")
+      // Đếm lại tổng số bàn tay đang sáng
+      const currentActive = document.querySelectorAll('.hand-icon.active').length;
+      
+      // Nếu đủ 6 tay thì Start Countdown
+      if (currentActive === 6) {
+        startCountdown();
+      }
     }
+  });
+
+  function startCountdown() {
+    isCountingDown = true; // Khóa trạng thái
+
+    // Âm thanh & Nhạc
+    videoElem.muted = true; // Tắt nhạc nền
+    countdownAudio.currentTime = 0;
+    countdownAudio.play().catch(e => console.log(e));
+
+    // UI Setup
+    countdownElem.style.display = 'block';
+    
+    // Ẩn chữ và bàn tay ngay lập tức cho tập trung vào số
+    mainText.style.opacity = '0'; 
+    handsWrapper.style.opacity = '0';
+
+    let count = 10;
+    
+    // Hàm chạy hiệu ứng số (Style kiểu MC Zerrill)
+    const runNumberEffect = (num) => {
+      countdownElem.innerText = num;
+      // Reset Animation
+      countdownElem.classList.remove('impact-effect');
+      void countdownElem.offsetWidth; // Trigger Reflow
+      countdownElem.classList.add('impact-effect');
+    };
+
+    runNumberEffect(count);
+
+    const interval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        runNumberEffect(count);
+      } else {
+        clearInterval(interval);
+        playNextVideo();
+      }
+    }, 1000);
   }
 
-  if (state === "next") {
-    handsWrap?.classList.add("hidden")
-    showVideo(videoNext)
+  function playNextVideo() {
+    countdownElem.style.display = 'none';
+    countdownAudio.pause();
+    uiLayer.classList.add('fade-out');
+
+    videoElem.src = 'videos/next.mp4';
+    videoElem.loop = false;
+    videoElem.muted = false; // Bật lại tiếng cho video mới
+    videoElem.play();
   }
+
+  socket.on('reset-system', () => {
+    isCountingDown = false;
+    
+    // Reset Audio/Video
+    countdownAudio.pause();
+    videoElem.src = 'videos/idle.mp4';
+    videoElem.loop = true;
+    videoElem.muted = false;
+    videoElem.play();
+
+    // Reset UI
+    uiLayer.classList.remove('fade-out');
+    mainText.classList.remove('move-up');
+    mainText.style.opacity = '1';
+    
+    handsWrapper.classList.remove('show');
+    handsWrapper.style.opacity = '';
+    
+    countdownElem.style.display = 'none';
+    countdownElem.classList.remove('impact-effect');
+
+    // Reset Hands Icon
+    document.querySelectorAll('.hand-icon').forEach(h => {
+      h.classList.remove('active', 'fa-solid');
+      h.classList.add('fa-regular');
+    });
+  });
+}
+
+/* =========================================
+   LOGIC CHO MÀN HÌNH CONTROL (control.html)
+   ========================================= */
+if (isControl) {
+  const btnShow = document.getElementById('btn-show-hands');
+  const handBtns = document.querySelectorAll('.hand-btn');
+  const btnReset = document.getElementById('btn-reset');
+
+  // Trạng thái cục bộ của 6 bàn tay (false = tắt, true = bật)
+  let handStates = [false, false, false, false, false, false];
+
+  btnShow.addEventListener('click', () => {
+    socket.emit('trigger-hands');
+    btnShow.disabled = true;
+    btnShow.innerText = "Hands Displayed";
+  });
+
+  handBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.getAttribute('data-index'));
+      
+      // Đảo ngược trạng thái (Toggle)
+      handStates[index] = !handStates[index];
+      const newState = handStates[index];
+
+      // Gửi lên server: index + trạng thái mới
+      socket.emit('toggle-hand', { index: index, status: newState });
+      
+      // Update giao diện nút bấm
+      if (newState) {
+        btn.classList.add('tapped'); // Xanh
+      } else {
+        btn.classList.remove('tapped'); // Xám lại
+      }
+    });
+  });
+
+  btnReset.addEventListener('click', () => {
+    socket.emit('trigger-reset');
+    
+    // Reset Control UI
+    btnShow.disabled = false;
+    btnShow.innerText = "START (Show Hands)";
+    handBtns.forEach(btn => btn.classList.remove('tapped'));
+    handStates = [false, false, false, false, false, false];
+  });
 }

@@ -1,61 +1,200 @@
-body {
-  margin: 0;
-  background: black;
-  overflow: hidden;
-  font-family: Arial, sans-serif;
+/* Reset & Base */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Arial', sans-serif; overflow: hidden; background: #000; color: white; }
+
+/* --- DISPLAY SCREEN (index.html) --- */
+#display-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
+/* Background Video */
+#bg-video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 1;
 }
 
-video.active {
-  display: block;
+/* Overlay Content (UI) */
+#ui-layer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s;
 }
 
-.hands {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
+/* Chữ ABC */
+#main-text {
+    font-size: 15vw;
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    transition: transform 1s ease-in-out; /* Animation di chuyển */
 }
 
-.hand {
-  font-size: 80px;
-  opacity: 0.2;
-  transition: 0.4s;
+/* Class kích hoạt di chuyển chữ lên trên */
+#main-text.move-up {
+    transform: translateY(-20vh); 
 }
 
-.hand.active {
-  opacity: 1;
-  filter: drop-shadow(0 0 25px lime);
+/* Khu vực chứa 6 bàn tay */
+#hands-wrapper {
+    position: absolute;
+    bottom: 10vh;
+    display: flex;
+    gap: 3vw;
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 1s ease-out;
 }
 
-.hidden {
-  display: none;
+/* Class kích hoạt hiển thị bàn tay */
+#hands-wrapper.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-/* CONTROL */
-.control {
-  color: white;
-  text-align: center;
-  padding-top: 40px;
+.hand-icon {
+    font-size: 6vw;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s;
 }
 
+/* Animation khi bàn tay được kích hoạt (Sáng + Solid) */
+.hand-icon.active {
+    color: #ffd700; /* Màu vàng sáng */
+    text-shadow: 0 0 30px #ffd700, 0 0 60px #ff0000;
+    transform: scale(1.2);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1.2); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1.2); }
+}
+
+/* Countdown */
+#countdown-display {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20vw;
+    font-weight: bold;
+    color: #ff4757;
+    display: none; /* Ẩn mặc định */
+    z-index: 20;
+}
+
+.fade-out {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* --- CONTROL SCREEN (control.html) --- */
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: #222;
+}
+.btn {
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    margin: 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: #3498db;
+    color: white;
+}
+.btn:active { transform: scale(0.95); }
+.btn-reset { background: #e74c3c; margin-top: 30px;}
+
+.hand-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
 .hand-btn {
-  font-size: 30px;
-  padding: 20px;
-  margin: 10px;
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+    background: #555;
+    border-radius: 50%;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.hand-btn.tapped { background: #2ecc71; }
+
+#countdown-display {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  
+  /* Font chữ Vuông, Đậm */
+  font-family: 'Orbitron', sans-serif; 
+  font-size: 25vw; /* Kích thước lớn */
+  font-weight: 900;
+  
+  /* Màu chữ: Trắng tuyệt đối để tạo độ tương phản cao nhất */
+  color: #ffffff;
+  
+  /* Đổ bóng: Lớp đầu tiên nhỏ và đậm để giữ nét, các lớp sau loe ra */
+  text-shadow: 
+    0 0 5px rgba(255, 255, 255, 1),   /* Viền sáng trắng sát chữ -> Giúp chữ nét */
+    0 0 20px rgba(0, 255, 255, 0.8),  /* Cyan Glow vừa phải */
+    0 0 60px rgba(128, 0, 255, 0.9);  /* Purple Glow nền xa */
+    
+  display: none;
+  z-index: 100;
+  
+  /* Tối ưu hóa render để không bị răng cưa */
+  will-change: transform, opacity;
+  -webkit-font-smoothing: antialiased;
 }
 
-.hand-btn.active {
-  background: lime;
-  color: black;
+/* Hiệu ứng đập mạnh (Impact Zoom) - Đã bỏ Blur */
+.impact-effect {
+  animation: impactZoom 1s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes impactZoom {
+  0% {
+    opacity: 0;
+    /* Bắt đầu to gấp 3 lần (giảm xuống 3 thay vì 5 để đỡ mờ do scale quá đà) */
+    transform: translate(-50%, -50%) scale(3); 
+  }
+  
+  15% {
+    opacity: 1;
+    /* Đập về kích thước chuẩn ngay lập tức */
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
+  100% {
+    opacity: 0;
+    /* Phóng to nhẹ khi biến mất */
+    transform: translate(-50%, -50%) scale(1.5); 
+  }
 }
