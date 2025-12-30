@@ -5,25 +5,26 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-// Serve static files from 'public' folder
+// Serve static files
 app.use(express.static('public'));
 
-// Socket.io connection logic
-io.on('connection', (socket) => {
-    console.log('A user connected: ' + socket.id);
+// Chặn lỗi 404 Favicon
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-    // 1. Khi Control yêu cầu hiển thị bàn tay
+io.on('connection', (socket) => {
+    console.log('User connected: ' + socket.id);
+
+    // 1. Control bấm START
     socket.on('trigger-hands', () => {
-        io.emit('show-hands'); // Gửi lệnh cho Display
+        io.emit('show-hands');
     });
 
-    // 2. Khi Control chạm vào một bàn tay cụ thể (index: 0-5)
+    // 2. Control chạm từng bàn tay
     socket.on('toggle-hand', (data) => {
-        // data = { index: 0, status: true/false }
         io.emit('update-hand', data);
     });
 
-    // 3. Khi Control yêu cầu Reset
+    // 3. Control bấm RESET
     socket.on('trigger-reset', () => {
         io.emit('reset-system');
     });

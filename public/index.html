@@ -4,26 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LED Display</title>
-    <!-- FontAwesome CDN -->
+    <!-- Chặn tìm kiếm favicon -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
 </head>
 <body id="display-page">
 
+    <!-- LỚP PHỦ CLICK ĐỂ BẮT ĐẦU (Bắt buộc để chạy Audio) -->
+    <div id="start-overlay">
+        <div class="overlay-content">
+        </div>
+    </div>
+
     <div id="display-container">
         <!-- Video nền -->
-        <video id="bg-video" autoplay muted loop>
+        <video id="bg-video" muted loop playsinline>
             <source src="videos/idle.mp4" type="video/mp4">
         </video>
 
-        <!-- Lớp UI đè lên trên -->
+        <!-- UI: Chữ và Bàn tay -->
         <div id="ui-layer">
-            <h1 id="main-text">ABC</h1>
+            <h1 id="main-text">NITROTECH ASIA INC</h1>
 
-            <!-- 6 Bàn tay -->
             <div id="hands-wrapper">
-                <!-- Ban đầu là fa-regular (rỗng), khi active thành fa-solid (đặc) -->
                 <i class="fa-regular fa-hand hand-icon" id="hand-0"></i>
                 <i class="fa-regular fa-hand hand-icon" id="hand-1"></i>
                 <i class="fa-regular fa-hand hand-icon" id="hand-2"></i>
@@ -33,12 +38,24 @@
             </div>
         </div>
 
-        <!-- Countdown số (Nằm đè lên tất cả khi kích hoạt) -->
-        <div id="countdown-display">10
-            <audio id="countdown-audio" preload="auto">
-                <source src="sounds/countdown.mp3" type="audio/mpeg">
-            </audio>
-        </div>
+        <!-- Countdown Số -->
+        <div id="countdown-display">10</div>
+
+        <!-- HỆ THỐNG ÂM THANH -->
+        <!-- 1. Nhạc nền chờ (Loop) -->
+        <audio id="start-audio" loop preload="auto">
+            <source src="sounds/start.mp3" type="audio/mpeg">
+        </audio>
+
+        <!-- 2. Hiệu ứng chạm tay (Không loop) -->
+        <audio id="hand-audio" preload="auto">
+            <source src="sounds/hand.mp3" type="audio/mpeg">
+        </audio>
+
+        <!-- 3. Nhạc Countdown (Không loop) -->
+        <audio id="countdown-audio" preload="auto">
+            <source src="sounds/countdown.mp3" type="audio/mpeg">
+        </audio>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>

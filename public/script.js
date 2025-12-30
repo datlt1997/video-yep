@@ -3,7 +3,7 @@ const isDisplay = document.body.id === 'display-page';
 const isControl = document.body.id === 'control-page';
 
 /* =========================================
-   LOGIC CHO MÀN HÌNH DISPLAY (index.html)
+   LOGIC MÀN HÌNH DISPLAY
    ========================================= */
 if (isDisplay) {
   const videoElem = document.getElementById('bg-video');
@@ -11,19 +11,57 @@ if (isDisplay) {
   const handsWrapper = document.getElementById('hands-wrapper');
   const uiLayer = document.getElementById('ui-layer');
   const countdownElem = document.getElementById('countdown-display');
-  const countdownAudio = document.getElementById('countdown-audio');
   
-  // Flag để chặn tương tác khi đang đếm ngược
+  // Audio Elements
+  const countdownAudio = document.getElementById('countdown-audio');
+  const startAudio = document.getElementById('start-audio');
+  const handAudio = document.getElementById('hand-audio');
+  const startOverlay = document.getElementById('start-overlay');
+  
   let isCountingDown = false;
 
+  // 1. SỰ KIỆN KHỞI ĐỘNG (CLICK TO START)
+  if (startOverlay) {
+    startOverlay.addEventListener('click', () => {
+      startOverlay.style.display = 'none';
+      
+      // A. CHẠY NHẠC NỀN CHÍNH
+      startAudio.volume = 0.8; 
+      startAudio.play().catch(e => console.error("Start Audio Error:", e));
+      
+      // B. "MỒI" (WARM-UP) ÂM THANH KHÁC
+      // Cho chạy 200ms với volume cực nhỏ để trình duyệt cấp quyền
+      const warmUpSound = (audio) => {
+          audio.volume = 0.001;
+          const p = audio.play();
+          if (p !== undefined) {
+              p.then(() => {
+                  setTimeout(() => {
+                      audio.pause();
+                      audio.currentTime = 0;
+                      audio.volume = 1.0; // Trả lại volume gốc
+                  }, 200);
+              }).catch(e => console.error("Warm-up Error:", e));
+          }
+      };
+
+      warmUpSound(countdownAudio);
+      warmUpSound(handAudio);
+
+      // C. CHẠY VIDEO
+      videoElem.play().catch(e => console.error("Video Autoplay Error:", e));
+    });
+  }
+
+  // 2. SOCKET: HIỆN BÀN TAY
   socket.on('show-hands', () => {
     mainText.classList.add('move-up');
     handsWrapper.classList.add('show');
+    // Nhạc nền đã chạy từ lúc click, không cần xử lý ở đây
   });
 
-  // XỬ LÝ BẬT/TẮT BÀN TAY
+  // 3. SOCKET: UPDATE TRẠNG THÁI TAY
   socket.on('update-hand', (data) => {
-    // Nếu đang đếm ngược rồi thì không cho chỉnh sửa tay nữa
     if (isCountingDown) return;
 
     const { index, status } = data;
@@ -32,51 +70,57 @@ if (isDisplay) {
 
     if (hand) {
       if (status) {
-        // BẬT
+        // Bật tay
         hand.classList.remove('fa-regular');
         hand.classList.add('fa-solid', 'active');
+        
+        // Phát tiếng hiệu ứng chạm tay
+        handAudio.currentTime = 0;
+        handAudio.play().catch(e => console.log(e));
+
       } else {
-        // TẮT
+        // Tắt tay
         hand.classList.remove('fa-solid', 'active');
         hand.classList.add('fa-regular');
       }
 
-      // Đếm lại tổng số bàn tay đang sáng
+      // Kiểm tra đủ 6 tay
       const currentActive = document.querySelectorAll('.hand-icon.active').length;
-      
-      // Nếu đủ 6 tay thì Start Countdown
       if (currentActive === 6) {
-        startCountdown();
+        setTimeout(() => {
+            startCountdown();
+        }, 200); 
       }
     }
   });
 
   function startCountdown() {
-    isCountingDown = true; // Khóa trạng thái
-
-    // Âm thanh & Nhạc
-    videoElem.muted = true; // Tắt nhạc nền
-    countdownAudio.currentTime = 0;
-    countdownAudio.play().catch(e => console.log(e));
-
-    // UI Setup
-    countdownElem.style.display = 'block';
+    isCountingDown = true;
     
-    // Ẩn chữ và bàn tay ngay lập tức cho tập trung vào số
+    // Dừng nhạc nền
+    startAudio.pause();
+    startAudio.currentTime = 0;
+
+    // Tắt tiếng video nền (nếu có)
+    videoElem.muted = true;
+    
+    // Phát nhạc Countdown
+    countdownAudio.currentTime = 0;
+    countdownAudio.play().catch(e => console.log("Countdown Play Error:", e));
+
+    // Hiển thị số
+    countdownElem.style.display = 'block';
+    countdownElem.style.opacity = '1'; 
     mainText.style.opacity = '0'; 
     handsWrapper.style.opacity = '0';
 
     let count = 10;
-    
-    // Hàm chạy hiệu ứng số (Style kiểu MC Zerrill)
     const runNumberEffect = (num) => {
       countdownElem.innerText = num;
-      // Reset Animation
       countdownElem.classList.remove('impact-effect');
-      void countdownElem.offsetWidth; // Trigger Reflow
+      void countdownElem.offsetWidth; // Trigger reflow
       countdownElem.classList.add('impact-effect');
     };
-
     runNumberEffect(count);
 
     const interval = setInterval(() => {
@@ -85,30 +129,46 @@ if (isDisplay) {
         runNumberEffect(count);
       } else {
         clearInterval(interval);
-        playNextVideo();
+        
+        // Kết thúc countdown
+        countdownElem.style.display = 'none';
+        countdownAudio.pause();
+
+        uiLayer.classList.add('fade-out');
+        videoElem.classList.add('video-hidden'); 
+        setTimeout(() => playNextVideo(), 500);
       }
     }, 1000);
   }
 
   function playNextVideo() {
-    countdownElem.style.display = 'none';
-    countdownAudio.pause();
-    uiLayer.classList.add('fade-out');
-
     videoElem.src = 'videos/next.mp4';
     videoElem.loop = false;
-    videoElem.muted = false; // Bật lại tiếng cho video mới
-    videoElem.play();
+    videoElem.muted = false;
+    videoElem.classList.add('video-hidden');
+
+    videoElem.play().then(() => {
+        setTimeout(() => {
+            videoElem.classList.remove('video-hidden');
+        }, 200);
+
+    }).catch(e => console.log("Autoplay Next blocked:", e));
   }
 
   socket.on('reset-system', () => {
     isCountingDown = false;
     
-    // Reset Audio/Video
+    // Reset Audio: Dừng countdown, chạy lại nhạc nền
     countdownAudio.pause();
+    
+    startAudio.currentTime = 0;
+    startAudio.play().catch(e => console.log("Reset Start Audio Error:", e));
+
+    // Reset Video
     videoElem.src = 'videos/idle.mp4';
     videoElem.loop = true;
     videoElem.muted = false;
+    videoElem.classList.remove('video-hidden');
     videoElem.play();
 
     // Reset UI
@@ -122,7 +182,6 @@ if (isDisplay) {
     countdownElem.style.display = 'none';
     countdownElem.classList.remove('impact-effect');
 
-    // Reset Hands Icon
     document.querySelectorAll('.hand-icon').forEach(h => {
       h.classList.remove('active', 'fa-solid');
       h.classList.add('fa-regular');
@@ -131,14 +190,12 @@ if (isDisplay) {
 }
 
 /* =========================================
-   LOGIC CHO MÀN HÌNH CONTROL (control.html)
+   LOGIC MÀN HÌNH CONTROL
    ========================================= */
 if (isControl) {
   const btnShow = document.getElementById('btn-show-hands');
   const handBtns = document.querySelectorAll('.hand-btn');
   const btnReset = document.getElementById('btn-reset');
-
-  // Trạng thái cục bộ của 6 bàn tay (false = tắt, true = bật)
   let handStates = [false, false, false, false, false, false];
 
   btnShow.addEventListener('click', () => {
@@ -150,27 +207,21 @@ if (isControl) {
   handBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const index = parseInt(btn.getAttribute('data-index'));
-      
-      // Đảo ngược trạng thái (Toggle)
       handStates[index] = !handStates[index];
       const newState = handStates[index];
 
-      // Gửi lên server: index + trạng thái mới
       socket.emit('toggle-hand', { index: index, status: newState });
       
-      // Update giao diện nút bấm
       if (newState) {
-        btn.classList.add('tapped'); // Xanh
+        btn.classList.add('tapped'); 
       } else {
-        btn.classList.remove('tapped'); // Xám lại
+        btn.classList.remove('tapped'); 
       }
     });
   });
 
   btnReset.addEventListener('click', () => {
     socket.emit('trigger-reset');
-    
-    // Reset Control UI
     btnShow.disabled = false;
     btnShow.innerText = "START (Show Hands)";
     handBtns.forEach(btn => btn.classList.remove('tapped'));
