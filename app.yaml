@@ -1,0 +1,7 @@
+runtime: nodejs18 # Hoặc nodejs20 tùy phiên bản bạn muốn
+instance_class: F1
+automatic_scaling:
+  min_instances: 1  # Giữ ít nhất 1 máy chạy để không bị mất kết nối socket
+  max_instances: 1  # Giới hạn 1 máy để đảm bảo mọi người cùng kết nối vào 1 nơi
+network:
+  session_affinity: true # BẮT BUỘC cho Socket.io để giữ kết nối ổn định
