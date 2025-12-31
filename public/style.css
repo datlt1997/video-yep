@@ -1,289 +1,208 @@
-/* RESET & GLOBAL */
+/* =========================================
+   GLOBAL RESET
+   ========================================= */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Arial', sans-serif; overflow: hidden; background: #000; color: white; }
+body { 
+    font-family: 'Arial', sans-serif; 
+    overflow: hidden; 
+    background: #000; 
+    color: white; 
+}
 
-/* OVERLAY START */
+/* =========================================
+   OVERLAY & START SCREEN
+   ========================================= */
 #start-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.95); z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     cursor: pointer;
 }
-.overlay-content { text-align: center; color: #00d2ff; animation: blink 1s infinite; }
+.overlay-content { text-align: center; color: #ff8c00; animation: blink 1s infinite; }
 .overlay-content i { font-size: 80px; margin-bottom: 20px; }
 .overlay-content p { font-size: 24px; font-weight: bold; letter-spacing: 2px; }
 @keyframes blink { 50% { opacity: 0.5; } }
 
-/* DISPLAY CONTAINER */
+/* =========================================
+   DISPLAY CONTAINER
+   ========================================= */
 #display-container {
     position: relative; width: 100vw; height: 100vh;
-    display: flex; justify-content: center; align-items: center; background-color: black;
+    display: flex; justify-content: center; align-items: center; 
+    background-color: black;
 }
 #bg-video {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: cover; z-index: 1; transition: opacity 0.5s ease;
+    object-fit: cover; z-index: 1; 
 }
 .video-hidden { opacity: 0 !important; }
 
-/* FX LAYER (Canvas & Ball) */
-#fx-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    /* Sấm sét nằm trên quả cầu (5) nhưng dưới chữ (10) */
-    z-index: 6; 
-    pointer-events: none;
-}
-#cable-canvas {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-}
-
-/* UI LAYER (Chứa chữ và bàn tay) */
-#ui-layer {
-    position: relative; 
-    /* Chữ nằm trên cùng */
-    z-index: 10; 
-    text-align: center;
-    width: 100%; height: 100%;
+/* LAYER HIỆU ỨNG (FX) */
+#fx-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+#cable-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 6; }
+/* =========================================
+   BLACK HOLE (HỐ ĐEN)
+   ========================================= */
+#black-hole {
+    position: absolute;
+    top: 35%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 300px; height: 300px;
+    z-index: 5;
+    display: flex; justify-content: center; align-items: center;
+    transition: transform 2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* CHỮ ABC (FONT AUDIOWIDE) */
+/* 1. Lớp xoáy ngoài (Chậm, rộng, màu cam tối) */
+.swirl-outer {
+    position: absolute; width: 160%; height: 160%;
+    border-radius: 50%;
+    /* Tạo vệt xoáy bằng conic-gradient */
+    background: conic-gradient(from 0deg, 
+        transparent 0%, #ff4500 10%, transparent 20%, 
+        #8b0000 30%, transparent 40%, #ff4500 50%, 
+        transparent 60%, #8b0000 70%, transparent 80%, 
+        #ff4500 90%, transparent 100%);
+    opacity: 0.6;
+    filter: blur(5px);
+    animation: spinHole 20s linear infinite;
+    mask: radial-gradient(circle, transparent 25%, black 60%);
+    -webkit-mask: radial-gradient(circle, transparent 25%, black 60%);
+}
+
+/* 2. Lớp xoáy trong (Nhanh, sáng, rõ nét) */
+.swirl-inner {
+    position: absolute; width: 120%; height: 120%;
+    border-radius: 50%;
+    /* Vệt xoáy sắc nét hơn */
+    background: conic-gradient(from 180deg, 
+        transparent 0%, #ffaa00 15%, transparent 25%, 
+        #ff8c00 40%, transparent 50%, #ffaa00 65%, 
+        transparent 75%, #ff8c00 90%, transparent 100%);
+    opacity: 0.9;
+    filter: blur(2px);
+    mix-blend-mode: screen; /* Làm sáng rực */
+    animation: spinHole 6s linear infinite;
+    mask: radial-gradient(circle, transparent 20%, black 70%);
+    -webkit-mask: radial-gradient(circle, transparent 20%, black 70%);
+}
+
+/* 3. Vòng Photon (Vòng ranh giới) */
+.photon-ring {
+    position: absolute; width: 95%; height: 95%;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 15px #fff, inset 0 0 20px #ffaa00;
+    z-index: 2;
+    filter: blur(1px);
+}
+
+/* 4. Chân trời sự kiện (Tâm đen) */
+.event-horizon {
+    position: absolute; width: 92%; height: 92%;
+    background-color: #000;
+    border-radius: 50%;
+    z-index: 3;
+    box-shadow: inset 0 0 30px #ff4500;
+}
+
+@keyframes spinHole { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+
+/* KẾT THÚC: NUỐT CHỬNG MÀN HÌNH */
+#black-hole.consume-screen {
+    transition: transform 1.5s ease-in;
+    transform: translate(-50%, -50%) scale(60) !important; /* Scale cực đại */
+    z-index: 9999; /* Đè lên tất cả */
+}
+#black-hole.consume-screen .event-horizon {
+    background: #000; 
+    box-shadow: none;
+}
+
+/* =========================================
+   UI LAYER (TEXT & HANDS)
+   ========================================= */
+#ui-layer { position: relative; z-index: 10; text-align: center; width: 100%; height: 100%; }
 #main-text {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-family: 'Audiowide', cursive;
-    font-size: 6vw; color: #fff;
-    text-shadow: 0 0 10px #fff, 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 80px #800000;
-    transition: all 1s ease-in-out;
-    letter-spacing: 10px; width: 100%;
+    position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+    font-family: 'Audiowide', cursive; font-size: 5vw; color: #fff;
+    text-shadow: 0 0 10px rgba(255,255,255,0.5), 0 0 30px #ff4500;
+    z-index: 20; transition: transform 0.1s; width: 100%;
 }
-#main-text.move-up { transform: translate(-50%, -48vh); opacity: 0.9; }
+
+.being-sucked { animation: spiralIn 1.5s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards; }
+@keyframes spiralIn {
+    0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
+    100% { transform: translate(-50%, -50%) scale(0) rotate(720deg); opacity: 0; filter: blur(20px); }
+}
+
+/* SỐ ĐẾM NGƯỢC */
+#countdown-display {
+    position: absolute; top: 35%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15vw; color: #fff; font-weight: 900;
+    z-index: 30; display: none;
+    text-shadow: 0 0 30px #ff4500;
+
+    --start-scale: 3;
+}
+
+.number-sucked {
+    animation: numberFall 0.8s ease-in forwards;
+}
+
+@keyframes numberFall {
+    0% {
+        transform: translate(-50%, -50%) scale(var(--start-scale)); 
+        opacity: 0; 
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(var(--start-scale)); 
+        opacity: 1; 
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0) rotate(-180deg); 
+        opacity: 0; 
+    }
+}
 
 /* BÀN TAY */
 #hands-wrapper {
-    position: absolute; bottom: 30vh; left: 0; width: 100%;
-    display: flex; justify-content: center; gap: 7vw;
+    position: absolute; bottom: 10vh; left: 0; width: 100%;
+    display: flex; justify-content: center; gap: 5vw;
     opacity: 0; transform: translateY(50px);
     transition: all 1s ease-out;
 }
 #hands-wrapper.show { opacity: 1; transform: translateY(0); }
 
 .hand-icon {
-    font-size: 5vw; color: rgba(255, 255, 255, 0.2);
+    font-size: 6vw; color: rgba(255, 255, 255, 0.2);
     transition: all 0.3s;
-    padding: 10px;
-    border-radius: 50%;
-    border: 5px solid rgba(255, 255, 255, 0.2);
 }
-
-/* Lật 3 tay trái */
 .hand-left { transform: scaleX(-1); --flip: -1; }
 .hand-right { --flip: 1; }
 
-/* Tay Active */
 .hand-icon.active {
     color: #fff;
-    text-shadow: 0 0 20px #ffaa00, 0 0 40px #ff0000;
-    /* Dùng biến --flip để giữ hướng lật khi animation */
+    /* Glow Cam lửa */
+    text-shadow: 0 0 20px #ff8c00, 0 0 40px #ff0000;
     transform: scaleX(var(--flip)) scale(1.2);
-    border-color: #fff;
-        
 }
 
-.hand-left.active {        
-    animation: handLeftActiveAnimation 1s infinite;
-}
-
-@keyframes handLeftActiveAnimation {
-    0% { transform: scaleX(-1) scale(0.95); --flip: -1 }
-    50% { transform: scaleX(-1) scale(1.05); --flip: -1 }
-    100% { transform: scaleX(-1) scale(0.95); --flip: -1 }
-}
-
-.hand-right.active {        
-    animation: handRighttActiveAnimation 1s infinite;
-}
-
-@keyframes handRighttActiveAnimation {
-    0% { transform:  scale(0.95); }
-    50% { transform:  scale(1.05); }
-    100% { transform:  scale(0.95); }
-}
-
-/* QUẢ CẦU NĂNG LƯỢNG (Vị trí 35% từ trên xuống) */
-
-
-/* SÓNG XUNG KÍCH (Vụ nổ) */
-#shockwave {
-    position: absolute; top: 35%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 0; height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 1);
-    /* Shadow Đỏ/Cam */
-    box-shadow: 0 0 50px 20px #fff, 0 0 100px 50px #ff4500;
-    opacity: 0; z-index: 99; pointer-events: none;
-}
-#shockwave.explode { animation: bigBang 0.8s ease-out forwards; }
-@keyframes bigBang {
-    0% { width: 0; height: 0; opacity: 1; }
-    30% { opacity: 1; }
-    100% { width: 200vw; height: 200vw; opacity: 0; }
-}
-
-/* SỐ ĐẾM NGƯỢC (Nằm giữa quả cầu - 35%) */
-#countdown-display {
-    position: absolute;
-    top: 35%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 15vw; /* Vừa vặn trong quả cầu */
-    font-weight: 900; color: #fff;
-    text-shadow: 0 0 20px rgba(0,0,0,0.5), 0 0 50px #fff;
-    display: none; z-index: 100;
-}
-
-/* Hiệu ứng Slam Zoom */
-.slam-effect { animation: slamZoom 0.8s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-@keyframes slamZoom {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(5); letter-spacing: 50px; }
-    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); letter-spacing: 0px; }
-    80% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); filter: blur(0px); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); filter: blur(10px); }
-}
-
-/* CONTROL PANEL */
+/* =========================================
+   CONTROL PANEL
+   ========================================= */
 .control-panel {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 100vh; background: #222;
+    height: 100vh; background: #111; color: #fff;
 }
-.btn { padding: 15px 30px; font-size: 1.5rem; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #3498db; color: white; }
+.btn { padding: 15px 30px; font-size: 1.5rem; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #e67e22; color: white; }
 .btn:disabled { background: #555; }
-.btn-reset { background: #e74c3c; margin-top: 30px; }
+.btn-reset { background: #c0392b; margin-top: 30px; }
 .hand-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-.hand-btn { width: 100px; height: 80px; font-size: 1.5rem; background: #444; color: white; border: none; cursor: pointer; border-radius: 10px; transition: 0.2s; }
-.hand-btn.tapped { background: #2ecc71; box-shadow: 0 0 15px #2ecc71; }
-
-#black-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: black;
-    z-index: 99999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 1.5s ease-in-out; 
-}
-
-/* Class kích hoạt màn hình tối */
-#black-overlay.fade-out {
-    opacity: 1;
-}
-
-
-#target-identity {
-    position: absolute;
-    top: 35%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px; height: 300px;
-    display: flex; justify-content: center; align-items: center;
-    z-index: 5;
-}
-
-/* Vòng tròn bao quanh (Thanh máu/Năng lượng) */
-.ring-border {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    border-radius: 50%;
-    border: 5px solid rgba(255, 0, 0, 0.1); /* Mờ lúc đầu */
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0);
-    transition: all 0.3s;
-}
-
-/* TÊN CŨ */
-.old-name {
-    font-family: 'Audiowide', cursive; /* Hoặc font của công ty cũ */
-    font-size: 3rem;
-    color: #888; /* Màu xám xịt lúc đầu */
-    letter-spacing: 5px;
-    transition: all 0.3s;
-    position: relative;
-}
-
-/* --- TRẠNG THÁI BỊ TẤN CÔNG (GATHERING) --- */
-/* Khi có tay chạm vào, thêm class này vào cha */
-#target-identity.under-attack .ring-border {
-    border-color: #ff0000;
-    /* Hiệu ứng viền xoay */
-    animation: spinBorder 2s linear infinite; 
-}
-
-#target-identity.under-attack .old-name {
-    color: #fff;
-    text-shadow: 0 0 10px #ff0000;
-}
-
-@keyframes spinBorder {
-    0% { transform: rotate(0deg); border-top-color: transparent; }
-    50% { border-top-color: #ff0000; border-right-color: transparent; }
-    100% { transform: rotate(360deg); border-top-color: transparent; }
-}
-
-/* --- HIỆU ỨNG GLITCH (NHIỄU) KHI NĂNG LƯỢNG TĂNG --- */
-/* Class này sẽ được JS add vào .old-name */
-.glitch {
-    animation: glitch-anim 0.3s infinite;
-    position: relative;
-}
-
-/* Tạo bóng chồng lên nhau để làm hiệu ứng nhiễu */
-.glitch::before, .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: #000; /* Nền đen để che chữ gốc */
-}
-
-.glitch::before {
-    left: 2px;
-    text-shadow: -1px 0 #ff00de;
-    clip: rect(44px, 450px, 56px, 0);
-    animation: glitch-anim-1 5s infinite linear alternate-reverse;
-}
-
-.glitch::after {
-    left: -2px;
-    text-shadow: -1px 0 #00ffff;
-    clip: rect(44px, 450px, 56px, 0);
-    animation: glitch-anim-2 5s infinite linear alternate-reverse;
-}
-
-@keyframes glitch-anim-1 {
-    0% { clip: rect(20px, 9999px, 10px, 0); }
-    20% { clip: rect(60px, 9999px, 80px, 0); }
-    40% { clip: rect(10px, 9999px, 50px, 0); }
-    60% { clip: rect(80px, 9999px, 20px, 0); }
-    80% { clip: rect(30px, 9999px, 70px, 0); }
-    100% { clip: rect(50px, 9999px, 40px, 0); }
-}
-
-@keyframes glitch-anim-2 {
-    0% { clip: rect(10px, 9999px, 80px, 0); }
-    20% { clip: rect(80px, 9999px, 10px, 0); }
-    40% { clip: rect(30px, 9999px, 20px, 0); }
-    60% { clip: rect(10px, 9999px, 50px, 0); }
-    80% { clip: rect(50px, 9999px, 30px, 0); }
-    100% { clip: rect(20px, 9999px, 70px, 0); }
-}
-
-/* --- SẮP NỔ (Rung lắc mạnh) --- */
-#target-identity.critical {
-    animation: criticalShake 0.1s infinite;
-}
-#target-identity.critical .ring-border {
-    box-shadow: 0 0 50px #ff0000, inset 0 0 50px #ff0000;
-    background: rgba(255, 0, 0, 0.3);
-}
-
-@keyframes criticalShake {
-    0% { transform: translate(-52%, -52%) rotate(-2deg); }
-    25% { transform: translate(-48%, -48%) rotate(2deg); }
-    50% { transform: translate(-50%, -50%) rotate(0deg); }
-    75% { transform: translate(-52%, -48%) rotate(-1deg); }
-    100% { transform: translate(-50%, -50%) rotate(0deg); }
-}
+.hand-btn { width: 100px; height: 80px; font-size: 1.5rem; background: #333; color: white; border: none; cursor: pointer; border-radius: 10px; transition: 0.2s; }
+.hand-btn.tapped { background: #d35400; box-shadow: 0 0 15px #d35400; }

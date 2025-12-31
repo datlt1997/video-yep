@@ -3,35 +3,34 @@ const isDisplay = document.body.id === 'display-page';
 const isControl = document.body.id === 'control-page';
 
 if (isDisplay) {
+    /* =========================================
+       1. SETUP & CONFIG
+       ========================================= */
     const videoElem = document.getElementById('bg-video');
     const mainText = document.getElementById('main-text');
     const handsWrapper = document.getElementById('hands-wrapper');
     const countdownElem = document.getElementById('countdown-display');
-    const targetIdentity = document.getElementById('target-identity');
-    const shockwave = document.getElementById('shockwave');
-    const blackOverlay = document.getElementById('black-overlay');
-    
+    const blackHole = document.getElementById('black-hole');
     const canvas = document.getElementById('cable-canvas');
     const ctx = canvas.getContext('2d');
     
+    // Audio
     const countdownAudio = document.getElementById('countdown-audio');
     const startAudio = document.getElementById('start-audio');
     const handAudio = document.getElementById('hand-audio');
     const startOverlay = document.getElementById('start-overlay');
-    const ringBorder = document.querySelector('.ring-border');
-    const oldNameText = document.querySelector('.old-name');
     
+    // VARIABLES
     let isSequenceFinished = false; 
     let animationFrameId;
     let activeHandCount = 0;
     let isAnimating = false;
+    let currentHoleScale = 0; 
+    let particles = []; 
     
-    // Biến mới để xử lý delay nổ
-    let explosionTimeout = null; 
-    let isOverloading = false; // Trạng thái đang chờ nổ
-
-    // Object lưu thời gian kích hoạt
-    let handTimers = {}; 
+    let isOverloading = false;       
+    let isSpawningAllowed = true;    
+    let isNameSuckingStarted = false; 
 
     function resizeCanvas() {
         canvas.width = window.innerWidth;
@@ -40,59 +39,47 @@ if (isDisplay) {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // 1. CLICK START
+    // CLICK START
     if (startOverlay) {
         startOverlay.addEventListener('click', () => {
             startOverlay.style.display = 'none';
             startAudio.muted = false; startAudio.volume = 0.8;
-            videoElem.play().catch(e => console.log(e));
-            startAudio.play().catch(()=>{});
-            countdownAudio.volume = 0; countdownAudio.play().then(() => { countdownAudio.pause(); countdownAudio.currentTime = 0; countdownAudio.volume = 1; });
-            handAudio.volume = 0; handAudio.play().then(() => { handAudio.pause(); handAudio.currentTime = 0; handAudio.volume = 1; });
+            videoElem.play().catch(()=>{}); startAudio.play().catch(()=>{});
+            [countdownAudio, handAudio].forEach(a => { 
+                a.volume=0; a.play().then(()=>{a.pause();a.currentTime=0;a.volume=1;}).catch(()=>{}); 
+            });
         });
     }
 
-    // 2. SOCKET
-    socket.on('show-hands', () => {
-        if(isSequenceFinished) return;
-        mainText.classList.add('move-up');
-        handsWrapper.classList.add('show');
-    });
-
+    /* =========================================
+       2. SOCKETS
+       ========================================= */
+    socket.on('show-hands', () => { if(!isSequenceFinished) handsWrapper.classList.add('show'); });
     socket.on('update-hand', (data) => {
         if (isSequenceFinished) return;
-        
         const { index, status } = data;
         const hands = document.querySelectorAll('.hand-icon');
         const hand = hands[index];
-
         if (hand) {
             if (status) {
                 if (!hand.classList.contains('active')) {
-                    hand.classList.remove('fa-regular');
-                    hand.classList.add('fa-solid', 'active');
-                    handAudio.currentTime = 0;
-                    handAudio.play().catch(()=>{});
-                    
-                    // Lưu thời điểm kích hoạt
-                    handTimers[index] = Date.now();
+                    hand.classList.remove('fa-regular'); hand.classList.add('fa-solid', 'active');
+                    handAudio.currentTime=0; handAudio.play().catch(()=>{});
+                    hand.nextSpawnTime = Date.now() + Math.random() * 500;
                 }
             } else {
                 if (hand.classList.contains('active')) {
-                    hand.classList.remove('fa-solid', 'active');
-                    hand.classList.add('fa-regular');
-                    delete handTimers[index];
+                    hand.classList.remove('fa-solid', 'active'); hand.classList.add('fa-regular');
                 }
             }
-
-            // Đếm lại số tay active
-            const activeHands = document.querySelectorAll('.hand-icon.active');
-            activeHandCount = activeHands.length;
-
+            activeHandCount = document.querySelectorAll('.hand-icon.active').length;
             updateEnergyState();
         }
     });
 
+    /* =========================================
+       3. LOGIC HỐ ĐEN (ĐÃ SỬA)
+       ========================================= */
     function updateEnergyState() {
         if (isOverloading) return;
 
@@ -101,170 +88,103 @@ if (isDisplay) {
             animateLoop();
         }
 
+        // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
+        // 1. Không tính toán lại scale mỗi khi chạm tay nữa
+        // 2. Chỉ đảm bảo hố đen mở ra mức tối thiểu khi có tay
+        
         if (activeHandCount > 0) {
-            targetIdentity.classList.add('under-attack');
-            
-            // 1. Tăng độ sáng của viền theo số tay
-            // opacity từ 0.2 -> 1
-            ringBorder.style.opacity = (0.2 + activeHandCount * 0.15).toString();
-            ringBorder.style.borderWidth = `${5 + activeHandCount * 2}px`; // Viền dày lên
-
-            // 2. Hiệu ứng Glitch cho chữ
-            // Set text shadow đỏ rực lên
-            oldNameText.style.textShadow = `0 0 ${activeHandCount * 10}px #ff0000`;
-            
-            // Nếu tay > 3 (quá nửa) -> Bắt đầu giật lag (Glitch)
-            if (activeHandCount >= 3) {
-                oldNameText.classList.add('glitch');
-                // Cần set attribute data-text để CSS ::before/::after hoạt động
-                oldNameText.setAttribute('data-text', oldNameText.innerText);
-            } else {
-                oldNameText.classList.remove('glitch');
+            // Nếu hố đen đang đóng (0), mở nó ra mức cơ bản (0.3)
+            // Sau đó giữ nguyên, chỉ to lên khi "ăn" bóng ở hàm animateLoop
+            if (currentHoleScale < 0.3) {
+                currentHoleScale = 0.3;
+                blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
             }
 
-        } else {
-            targetIdentity.classList.remove('under-attack');
-            oldNameText.classList.remove('glitch');
-            ringBorder.style.opacity = '1';
-            ringBorder.style.borderWidth = '5px';
-            oldNameText.style.textShadow = 'none';
+            // Rung lắc tên công ty (Càng nhiều tay rung càng mạnh)
+            const shakeIntensity = activeHandCount * 1.5; 
+            const rX = (Math.random()-0.5)*shakeIntensity*2;
+            const rY = (Math.random()-0.5)*shakeIntensity*2;
+            const rRot = (Math.random()-0.5)*(activeHandCount*0.5);
+            mainText.style.transform = `translate(calc(-50% + ${rX}px), calc(-50% + ${rY}px)) rotate(${rRot}deg)`;
+        } 
+        else if (activeHandCount === 0) {
+            // Nếu không còn tay nào -> Hố đen đóng lại
+            currentHoleScale = 0;
+            blackHole.style.transform = `translate(-50%, -50%) scale(0)`;
+            mainText.style.transform = `translate(-50%, -50%)`;
         }
 
         // --- ĐỦ 6 TAY ---
         if (activeHandCount === 6) {
-            isOverloading = true;
+            isOverloading = true; 
             
-            // Trạng thái cực hạn (Critical)
-            targetIdentity.classList.add('critical');
-            
-            explosionTimeout = setTimeout(() => {
-                triggerExplosionAndCountdown();
-            }, 500);
-        } else {
-             targetIdentity.classList.remove('critical');
+            // Bắt đầu quá trình kết thúc
+            setTimeout(() => {
+                triggerPhase2_StopHands();
+            }, 3000);
         }
     }
 
-    // --- VẼ SẤM SÉT ---
-    function drawLightning(x1, y1, x2, y2, progress) {
-        const fullDx = x2 - x1;
-        const fullDy = y2 - y1;
-        
-        const currentX2 = x1 + fullDx * progress;
-        const currentY2 = y1 + fullDy * progress;
-
-        const dx = currentX2 - x1;
-        const dy = currentY2 - y1;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // Vẽ ngay cả khi ngắn để tạo cảm giác xuất phát
-        if (dist < 1) return;
-
-        const segments = 12;
-        const amplitude = dist / 10; 
-
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-
-        for (let i = 1; i <= segments; i++) {
-            const t = i / segments;
-            const idealX = x1 + dx * t;
-            const idealY = y1 + dy * t;
-
-            let offsetX = 0;
-            let offsetY = 0;
-
-            if (i < segments) {
-                offsetX = (Math.random() - 0.5) * amplitude;
-                offsetY = (Math.random() - 0.5) * amplitude;
-            }
-            ctx.lineTo(idealX + offsetX, idealY + offsetY);
-        }
-
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ff4500';
-        ctx.strokeStyle = '#ffffcc';
-        ctx.lineWidth = 4;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.stroke();
-    }
-
-    function animateLoop() {
-        if (!isAnimating) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const rect = targetIdentity.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-
-        const activeHands = document.querySelectorAll('.hand-icon.active');
-        const now = Date.now();
-
-        activeHands.forEach(hand => {
-            const indexStr = hand.getAttribute('data-index');
-            const index = indexStr ? parseInt(indexStr) : -1;
-            
-            const rect = hand.getBoundingClientRect();
-            const hx = rect.left + rect.width / 2;
-            const hy = rect.top + 80;
-            
-            let progress = 1; 
-
-            if (index !== -1 && handTimers[index]) {
-                const duration = 100; // 0.1 giây chạy tia sét
-                const elapsed = now - handTimers[index];
-                progress = elapsed / duration;
-                if (progress > 1) progress = 1;
-            }
-
-            drawLightning(hx, hy, cx, cy, progress);
-        });
-
-        // Vòng lặp vẫn chạy kể cả khi đang chờ nổ (isOverloading)
-        if (!isSequenceFinished) {
-            animationFrameId = requestAnimationFrame(animateLoop);
-        }
-    }
-
-    function triggerExplosionAndCountdown() {
-        isSequenceFinished = true;
-        
-        shockwave.classList.add('explode');
-        startAudio.pause();
-        countdownAudio.currentTime = 0;
-        countdownAudio.play().catch(()=>{});
-
-        // Dừng vẽ canvas lúc này
-        isAnimating = false;
-        cancelAnimationFrame(animationFrameId);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    // GIAI ĐOẠN 2
+    function triggerPhase2_StopHands() {
+        isSpawningAllowed = false;
+        handsWrapper.style.transition = 'opacity 0.8s'; 
         handsWrapper.style.opacity = '0';
-        mainText.style.opacity = '0';
-        targetIdentity.style.opacity = '0';
-        targetIdentity.classList.remove('under-attack', 'critical');
+        setTimeout(() => {
+            triggerPhase3_SuckName();
+        }, 1000);
+    }
+
+    // GIAI ĐOẠN 3
+    function triggerPhase3_SuckName() {
+        if (isNameSuckingStarted) return;
+        isNameSuckingStarted = true;
+        isSequenceFinished = true; 
+        
+        // Trước khi hút, phóng to hố đen lên một chút để "mở miệng"
+        // Sử dụng giá trị hiện tại cộng thêm, không set cứng
+        currentHoleScale += 0.3;
+        blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
+
+        startAudio.pause();
+        mainText.classList.add('being-sucked');
 
         setTimeout(() => {
+            mainText.style.opacity = '0';
+            isAnimating = false; 
+            cancelAnimationFrame(animationFrameId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = []; 
             startCountdown();
-        }, 100); 
+        }, 1500);
     }
 
+    /* =========================================
+       4. COUNTDOWN
+       ========================================= */
     function startCountdown() {
         countdownElem.style.display = 'block';
         let count = 10;
         
+        countdownAudio.currentTime = 0;
+        countdownAudio.volume = 1.0;
+        setTimeout(() => {
+            countdownAudio.play().catch(e => console.log("Audio play failed:", e));
+        }, 0)
+        
+
         const runNumberEffect = (num) => {
             countdownElem.innerText = num;
-            
-            countdownElem.classList.remove('slam-effect');
-            void countdownElem.offsetWidth; 
-            countdownElem.classList.add('slam-effect');
+            const scaleVal = 1.3 + ((10 - num) * 0.2);
+            countdownElem.style.setProperty('--start-scale', scaleVal);
 
-            shockwave.classList.remove('explode');
-            void shockwave.offsetWidth; 
-            shockwave.classList.add('explode');
+            countdownElem.classList.remove('number-sucked');
+            void countdownElem.offsetWidth; 
+            countdownElem.classList.add('number-sucked');
+
+            // Hố đen to dần sau mỗi số
+            currentHoleScale += 0.15; 
+            blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
         };
 
         runNumberEffect(count);
@@ -281,71 +201,184 @@ if (isDisplay) {
     }
 
     function finishSequence() {
-        shockwave.classList.remove('explode');
-        blackOverlay.classList.add('fade-out');
-
+        countdownElem.style.display = 'none';
+        blackHole.classList.add('consume-screen');
         setTimeout(() => {
-            countdownElem.style.display = 'none';
             playNextVideo();
             setTimeout(() => {
-                blackOverlay.classList.remove('fade-out');
-            }, 500);
-        }, 1500); 
+                blackHole.style.opacity = '0';
+                setTimeout(() => {
+                    blackHole.classList.remove('consume-screen');
+                    blackHole.style.transform = 'translate(-50%, -50%) scale(0)';
+                }, 1000);
+            }, 1000);
+        }, 1000);
+    }
+
+    /* =========================================
+       5. PARTICLE SYSTEM
+       ========================================= */
+    class HelicalParticle {
+        constructor(startX, startY, centerX, centerY) {
+            this.startX = startX + (Math.random() - 0.5) * 20;
+            this.startY = startY + (Math.random() - 0.5) * 20;
+            this.endX = centerX + (Math.random() - 0.5) * 30;
+            this.endY = centerY + (Math.random() - 0.5) * 30;
+
+            const dx = this.endX - this.startX;
+            const dy = this.endY - this.startY;
+            this.totalDist = Math.sqrt(dx*dx + dy*dy);
+            this.angleBase = Math.atan2(dy, dx);
+            this.currentDist = 0;
+
+            this.speed = 6 + Math.random() * 3; 
+            this.spiralRadiusMax = 40 + Math.random() * 20; 
+            this.spiralFreq = 0.05;   
+            this.phase = Math.random() * Math.PI * 2;      
+            this.size = 40 + Math.random() * 20; 
+            
+            this.dead = false;
+            this.reachedCenter = false; 
+        }
+
+        update() {
+            this.currentDist += this.speed;
+            let progress = this.currentDist / this.totalDist;
+            
+            if (progress >= 1) {
+                this.dead = true;
+                this.reachedCenter = true; 
+                return;
+            }
+
+            const baseX = this.startX + (this.endX - this.startX) * progress;
+            const baseY = this.startY + (this.endY - this.startY) * progress;
+            const perpAngle = this.angleBase + Math.PI / 2;
+            const currentSpiralRadius = this.spiralRadiusMax * (1 - progress);
+            const wave = Math.sin(this.currentDist * this.spiralFreq + this.phase);
+            
+            this.x = baseX + Math.cos(perpAngle) * wave * currentSpiralRadius;
+            this.y = baseY + Math.sin(perpAngle) * wave * currentSpiralRadius;
+            
+            this.currentSize = this.size * (1 - (progress * 0.95));
+            if (this.currentSize < 3) this.currentSize = 3;
+        }
+
+        draw(ctx) {
+            if (this.dead) return;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(this.x, this.y, this.currentSize * 0.2, this.x, this.y, this.currentSize);
+            gradient.addColorStop(0, '#ffffff');    
+            gradient.addColorStop(0.3, '#ffcc00');  
+            gradient.addColorStop(1, '#ff4500');    
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff4500';
+        }
+    }
+
+    function animateLoop() {
+        if (!isAnimating) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const rect = blackHole.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        const activeHands = document.querySelectorAll('.hand-icon.active');
+        const now = Date.now();
+
+        if (isSpawningAllowed) {
+            activeHands.forEach(hand => {
+                const hRect = hand.getBoundingClientRect();
+                const hx = hRect.left + hRect.width / 2;
+                const hy = hRect.top + 80;
+
+                if (!hand.nextSpawnTime) hand.nextSpawnTime = now + Math.random() * 500;
+
+                if (now > hand.nextSpawnTime) {
+                    particles.push(new HelicalParticle(hx, hy, cx, cy));
+                    hand.nextSpawnTime = now + 400 + Math.random() * 400;
+                }
+            });
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            particles[i].draw(ctx);
+            
+            // LOGIC "ĂN" BÓNG -> TO LÊN
+            if (particles[i].dead && particles[i].reachedCenter) {
+                // Chỉ to lên nếu chưa quá mức cho phép (ví dụ 1.2)
+                // Điều này làm cho hố đen to lên TỪ TỪ và MƯỢT MÀ
+                if (currentHoleScale < 1.3) {
+                    currentHoleScale += 0.015; // Mỗi quả bóng làm to thêm 1 chút xíu
+                    blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
+                }
+                particles.splice(i, 1);
+            } else if (particles[i].dead) {
+                particles.splice(i, 1);
+            }
+        }
+
+        // Rung lắc tên
+        if (!isSequenceFinished && activeHandCount > 0) {
+            const shakeIntensity = activeHandCount * 1.5;
+            const rX = (Math.random()-0.5)*shakeIntensity*2; 
+            const rY = (Math.random()-0.5)*shakeIntensity*2;
+            const rRot = (Math.random()-0.5)*(activeHandCount*0.5);
+            mainText.style.transform = `translate(calc(-50% + ${rX}px), calc(-50% + ${rY}px)) rotate(${rRot}deg)`;
+        }
+
+        if ((activeHandCount > 0 && !isNameSuckingStarted) || particles.length > 0) {
+             animationFrameId = requestAnimationFrame(animateLoop);
+        } else {
+            isAnimating = false;
+        }
     }
 
     function playNextVideo() {
-        videoElem.src = 'videos/next.mp4';
-        videoElem.loop = false;
-        videoElem.muted = false;
+        videoElem.src = 'videos/next.mp4'; videoElem.loop = false; videoElem.muted = false;
         videoElem.play().catch(e => console.log(e));
     }
 
     socket.on('reset-system', () => {
-        isSequenceFinished = false;
-        isAnimating = false;
+        isSequenceFinished = false; 
+        isAnimating = false; 
         isOverloading = false;
-        activeHandCount = 0;
-        handTimers = {}; 
-
-        // Xóa timeout nếu đang đếm ngược để nổ mà bấm reset
-        if (explosionTimeout) {
-            clearTimeout(explosionTimeout);
-            explosionTimeout = null;
-        }
-
+        isSpawningAllowed = true;
+        isNameSuckingStarted = false;
+        activeHandCount = 0; 
+        currentHoleScale = 0;
+        
         cancelAnimationFrame(animationFrameId);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        countdownAudio.pause();
-        startAudio.currentTime = 0;
-        startAudio.play().catch(()=>{});
-
-        videoElem.src = 'videos/idle.mp4';
-        videoElem.loop = true;
-        videoElem.play();
-
-        mainText.classList.remove('move-up');
-        mainText.style.opacity = '1';
-        handsWrapper.classList.remove('show');
-        handsWrapper.style.opacity = ''; 
+        particles = [];
         
-        targetIdentity.style.opacity = '1';
-        targetIdentity.classList.remove('under-attack', 'critical');
-        oldNameText.classList.remove('glitch');
+        countdownAudio.pause(); startAudio.currentTime=0; startAudio.play().catch(()=>{});
+        videoElem.src = 'videos/idle.mp4'; videoElem.loop = true; videoElem.play();
         
-        shockwave.classList.remove('explode');
-        countdownElem.style.display = 'none';
+        mainText.classList.remove('being-sucked'); 
+        mainText.style.opacity = '1'; mainText.style.transform = 'translate(-50%, -50%)';
         
-        blackOverlay.classList.remove('fade-out');
-
-        document.querySelectorAll('.hand-icon').forEach(h => {
-            h.classList.remove('active', 'fa-solid');
-            h.classList.add('fa-regular');
+        blackHole.style.opacity = '1'; blackHole.classList.remove('consume-screen'); 
+        blackHole.style.transform = 'translate(-50%, -50%) scale(0)';
+        
+        countdownElem.style.display = 'none'; 
+        handsWrapper.classList.remove('show'); handsWrapper.style.opacity = '';
+        
+        document.querySelectorAll('.hand-icon').forEach(h => { 
+            h.classList.remove('active', 'fa-solid'); h.classList.add('fa-regular'); 
+            delete h.nextSpawnTime; 
         });
     });
 }
 
-// Logic CONTROL giữ nguyên...
+/* =========================================
+   LOGIC MÀN HÌNH CONTROL
+   ========================================= */
 if (isControl) {
     const btnShow = document.getElementById('btn-show-hands');
     const handBtns = document.querySelectorAll('.hand-btn');
