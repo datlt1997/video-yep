@@ -4,58 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LED Display</title>
-    <!-- Chặn tìm kiếm favicon -->
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
 </head>
 <body id="display-page">
-
-    <!-- LỚP PHỦ CLICK ĐỂ BẮT ĐẦU (Bắt buộc để chạy Audio) -->
     <div id="start-overlay">
         <div class="overlay-content">
         </div>
     </div>
+    <div id="black-overlay"></div>
 
     <div id="display-container">
-        <!-- Video nền -->
         <video id="bg-video" muted loop playsinline>
             <source src="videos/idle.mp4" type="video/mp4">
         </video>
 
-        <!-- UI: Chữ và Bàn tay -->
+        <!-- LAYER HIỆU ỨNG (FX) -->
+        <div id="fx-layer">
+            <canvas id="cable-canvas"></canvas>
+            
+            <div id="target-identity">
+                <div class="ring-border"></div> <!-- Vòng tròn bao quanh -->
+                <span class="old-name">NITRO TECH ASIA INC</span> <!-- Thay tên cũ vào đây -->
+            </div>
+            
+            <div id="shockwave"></div>
+        </div>
+
+        <div id="countdown-display">10</div>
+
         <div id="ui-layer">
-            <h1 id="main-text">NITROTECH ASIA INC</h1>
+            <h1 id="main-text">NITRO TECH ASIA INC</h1>
 
             <div id="hands-wrapper">
-                <i class="fa-regular fa-hand hand-icon" id="hand-0"></i>
-                <i class="fa-regular fa-hand hand-icon" id="hand-1"></i>
-                <i class="fa-regular fa-hand hand-icon" id="hand-2"></i>
-                <i class="fa-regular fa-hand hand-icon" id="hand-3"></i>
-                <i class="fa-regular fa-hand hand-icon" id="hand-4"></i>
-                <i class="fa-regular fa-hand hand-icon" id="hand-5"></i>
+                <i class="fa-regular fa-hand hand-icon hand-left" id="hand-0" data-index="0"></i>
+                <i class="fa-regular fa-hand hand-icon hand-left" id="hand-1" data-index="1"></i>
+                <i class="fa-regular fa-hand hand-icon hand-left" id="hand-2" data-index="2"></i>
+                
+                <i class="fa-regular fa-hand hand-icon hand-right" id="hand-3" data-index="3"></i>
+                <i class="fa-regular fa-hand hand-icon hand-right" id="hand-4" data-index="4"></i>
+                <i class="fa-regular fa-hand hand-icon hand-right" id="hand-5" data-index="5"></i>
             </div>
         </div>
 
-        <!-- Countdown Số -->
-        <div id="countdown-display">10</div>
-
-        <!-- HỆ THỐNG ÂM THANH -->
-        <!-- 1. Nhạc nền chờ (Loop) -->
-        <audio id="start-audio" loop preload="auto">
-            <source src="sounds/start.mp3" type="audio/mpeg">
-        </audio>
-
-        <!-- 2. Hiệu ứng chạm tay (Không loop) -->
-        <audio id="hand-audio" preload="auto">
-            <source src="sounds/hand.mp3" type="audio/mpeg">
-        </audio>
-
-        <!-- 3. Nhạc Countdown (Không loop) -->
-        <audio id="countdown-audio" preload="auto">
-            <source src="sounds/countdown.mp3" type="audio/mpeg">
-        </audio>
+        <audio id="start-audio" loop preload="auto"><source src="sounds/start.mp3" type="audio/mpeg"></audio>
+        <audio id="hand-audio" preload="auto"><source src="sounds/hand.mp3" type="audio/mpeg"></audio>
+        <audio id="countdown-audio" preload="auto"><source src="sounds/countdown.mp3" type="audio/mpeg"></audio>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
