@@ -167,6 +167,8 @@ if (isDisplay) {
             cancelAnimationFrame(animationFrameId);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles = []; 
+            blackHole.classList.add('move-to-center');
+            // countdownElem.classList.add('move-to-center');
             startCountdown();
         }, 1500);
     }
@@ -176,6 +178,9 @@ if (isDisplay) {
        ========================================= */
     function startCountdown() {
         countdownElem.style.display = 'block';
+        setTimeout(() => {
+            countdownElem.classList.add('move-to-center');
+        }, 50);
         let count = 10;
         
         countdownAudio.currentTime = 0;
@@ -280,9 +285,9 @@ if (isDisplay) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2);
             const gradient = ctx.createRadialGradient(this.x, this.y, this.currentSize * 0.2, this.x, this.y, this.currentSize);
-            gradient.addColorStop(0, '#ffffff');    
-            gradient.addColorStop(0.3, '#ffcc00');  
-            gradient.addColorStop(1, '#ff4500');    
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.6, '#f0f0f0');
+            gradient.addColorStop(1, '#dcdcdc');
             ctx.fillStyle = gradient;
             ctx.fill();
             ctx.shadowBlur = 15;
@@ -378,6 +383,9 @@ if (isDisplay) {
         
         blackHole.style.opacity = '1'; blackHole.classList.remove('consume-screen'); 
         blackHole.style.transform = 'translate(-50%, -50%) scale(0)';
+
+        blackHole.classList.remove('move-to-center');
+        countdownElem.classList.remove('move-to-center');
         
         countdownElem.style.display = 'none'; 
         handsWrapper.classList.remove('show'); handsWrapper.style.opacity = '';
