@@ -18,6 +18,8 @@ if (isDisplay) {
     const countdownAudio = document.getElementById('countdown-audio');
     const startAudio = document.getElementById('start-audio');
     const handAudio = document.getElementById('hand-audio');
+    const waitingAudio = document.getElementById('waiting-audio'); // CẬP NHẬT: Nhạc chờ
+    
     const startOverlay = document.getElementById('start-overlay');
     
     // VARIABLES
@@ -45,8 +47,10 @@ if (isDisplay) {
             startOverlay.style.display = 'none';
             startAudio.muted = false; startAudio.volume = 0.8;
             videoElem.play().catch(()=>{}); startAudio.play().catch(()=>{});
-            [countdownAudio, handAudio].forEach(a => { 
-                a.volume=0; a.play().then(()=>{a.pause();a.currentTime=0;a.volume=1;}).catch(()=>{}); 
+            
+            // CẬP NHẬT: Preload cả waitingAudio
+            [countdownAudio, handAudio, waitingAudio].forEach(a => { 
+                if(a) { a.volume=0; a.play().then(()=>{a.pause();a.currentTime=0;a.volume=1;}).catch(()=>{}); }
             });
         });
     }
@@ -54,7 +58,19 @@ if (isDisplay) {
     /* =========================================
        2. SOCKETS
        ========================================= */
-    socket.on('show-hands', () => { if(!isSequenceFinished) handsWrapper.classList.add('show'); });
+    socket.on('show-hands', () => { 
+        if(!isSequenceFinished) {
+            handsWrapper.classList.add('show');
+            
+            startAudio.pause();
+            if(waitingAudio) {
+                waitingAudio.currentTime = 0;
+                waitingAudio.volume = 0.7;
+                waitingAudio.play().catch(e => console.log(e));
+            }
+        } 
+    });
+
     socket.on('update-hand', (data) => {
         if (isSequenceFinished) return;
         const { index, status } = data;
@@ -73,12 +89,20 @@ if (isDisplay) {
                 }
             }
             activeHandCount = document.querySelectorAll('.hand-icon.active').length;
+
+            if (waitingAudio) {
+                let newVolume = 0.7 + (activeHandCount * 0.05);
+                
+                if (newVolume > 1.0) newVolume = 1.0;
+                
+                waitingAudio.volume = newVolume;
+            }
             updateEnergyState();
         }
     });
 
     /* =========================================
-       3. LOGIC HỐ ĐEN (ĐÃ SỬA)
+       3. LOGIC HỐ ĐEN
        ========================================= */
     function updateEnergyState() {
         if (isOverloading) return;
@@ -88,19 +112,12 @@ if (isDisplay) {
             animateLoop();
         }
 
-        // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
-        // 1. Không tính toán lại scale mỗi khi chạm tay nữa
-        // 2. Chỉ đảm bảo hố đen mở ra mức tối thiểu khi có tay
-        
         if (activeHandCount > 0) {
-            // Nếu hố đen đang đóng (0), mở nó ra mức cơ bản (0.3)
-            // Sau đó giữ nguyên, chỉ to lên khi "ăn" bóng ở hàm animateLoop
             if (currentHoleScale < 0.3) {
                 currentHoleScale = 0.3;
                 blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
             }
 
-            // Rung lắc tên công ty (Càng nhiều tay rung càng mạnh)
             const shakeIntensity = activeHandCount * 1.5; 
             const rX = (Math.random()-0.5)*shakeIntensity*2;
             const rY = (Math.random()-0.5)*shakeIntensity*2;
@@ -108,17 +125,13 @@ if (isDisplay) {
             mainText.style.transform = `translate(calc(-50% + ${rX}px), calc(-50% + ${rY}px)) rotate(${rRot}deg)`;
         } 
         else if (activeHandCount === 0) {
-            // Nếu không còn tay nào -> Hố đen đóng lại
             currentHoleScale = 0;
             blackHole.style.transform = `translate(-50%, -50%) scale(0)`;
             mainText.style.transform = `translate(-50%, -50%)`;
         }
 
-        // --- ĐỦ 6 TAY ---
         if (activeHandCount === 6) {
             isOverloading = true; 
-            
-            // Bắt đầu quá trình kết thúc
             setTimeout(() => {
                 triggerPhase2_StopHands();
             }, 3000);
@@ -141,12 +154,11 @@ if (isDisplay) {
         isNameSuckingStarted = true;
         isSequenceFinished = true; 
         
-        // Trước khi hút, phóng to hố đen lên một chút để "mở miệng"
-        // Sử dụng giá trị hiện tại cộng thêm, không set cứng
+        if(waitingAudio) waitingAudio.pause();
+
         currentHoleScale += 0.3;
         blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
 
-        startAudio.pause();
         mainText.classList.add('being-sucked');
 
         setTimeout(() => {
@@ -182,7 +194,6 @@ if (isDisplay) {
             void countdownElem.offsetWidth; 
             countdownElem.classList.add('number-sucked');
 
-            // Hố đen to dần sau mỗi số
             currentHoleScale += 0.15; 
             blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
         };
@@ -309,12 +320,9 @@ if (isDisplay) {
             particles[i].update();
             particles[i].draw(ctx);
             
-            // LOGIC "ĂN" BÓNG -> TO LÊN
             if (particles[i].dead && particles[i].reachedCenter) {
-                // Chỉ to lên nếu chưa quá mức cho phép (ví dụ 1.2)
-                // Điều này làm cho hố đen to lên TỪ TỪ và MƯỢT MÀ
                 if (currentHoleScale < 1.3) {
-                    currentHoleScale += 0.015; // Mỗi quả bóng làm to thêm 1 chút xíu
+                    currentHoleScale += 0.015; 
                     blackHole.style.transform = `translate(-50%, -50%) scale(${currentHoleScale})`;
                 }
                 particles.splice(i, 1);
@@ -357,7 +365,12 @@ if (isDisplay) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles = [];
         
-        countdownAudio.pause(); startAudio.currentTime=0; startAudio.play().catch(()=>{});
+        // RESET AUDIO
+        countdownAudio.pause(); 
+        if(waitingAudio) { waitingAudio.pause(); waitingAudio.currentTime = 0; }
+        
+        startAudio.currentTime=0; startAudio.play().catch(()=>{});
+        
         videoElem.src = 'videos/idle.mp4'; videoElem.loop = true; videoElem.play();
         
         mainText.classList.remove('being-sucked'); 

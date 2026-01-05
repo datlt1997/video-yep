@@ -35,91 +35,51 @@ body {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     object-fit: cover; z-index: 1; 
 }
-.video-hidden { opacity: 0 !important; }
 
 /* LAYER HIỆU ỨNG (FX) */
 #fx-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
 #cable-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 6; }
+
 /* =========================================
-   BLACK HOLE (HỐ ĐEN)
+   BLACK HOLE (HỐ ĐEN) - CẬP NHẬT
    ========================================= */
 #black-hole {
     position: absolute;
     top: 35%; left: 50%;
+    /* JS điều khiển scale tại đây */
     transform: translate(-50%, -50%) scale(0);
-    width: 300px; height: 300px;
+    width: 350px; /* Tùy chỉnh kích thước hố đen */
+    height: 350px;
     z-index: 5;
     display: flex; justify-content: center; align-items: center;
     transition: transform 2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 1. Lớp xoáy ngoài (Chậm, rộng, màu cam tối) */
-.swirl-outer {
-    position: absolute; width: 160%; height: 160%;
-    border-radius: 50%;
-    /* Tạo vệt xoáy bằng conic-gradient */
-    background: conic-gradient(from 0deg, 
-        transparent 0%, #ff4500 10%, transparent 20%, 
-        #8b0000 30%, transparent 40%, #ff4500 50%, 
-        transparent 60%, #8b0000 70%, transparent 80%, 
-        #ff4500 90%, transparent 100%);
-    opacity: 0.6;
-    filter: blur(5px);
-    animation: spinHole 20s linear infinite;
-    mask: radial-gradient(circle, transparent 25%, black 60%);
-    -webkit-mask: radial-gradient(circle, transparent 25%, black 60%);
+/* Class cho ảnh xoay tròn 360 độ */
+.rotating-hole {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Xoay vô tận, 20s một vòng */
+    animation: spinInfinite 20s linear infinite;
+    /* Thêm hiệu ứng phát sáng nhẹ nếu muốn */
+    filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.5));
 }
 
-/* 2. Lớp xoáy trong (Nhanh, sáng, rõ nét) */
-.swirl-inner {
-    position: absolute; width: 120%; height: 120%;
-    border-radius: 50%;
-    /* Vệt xoáy sắc nét hơn */
-    background: conic-gradient(from 180deg, 
-        transparent 0%, #ffaa00 15%, transparent 25%, 
-        #ff8c00 40%, transparent 50%, #ffaa00 65%, 
-        transparent 75%, #ff8c00 90%, transparent 100%);
-    opacity: 0.9;
-    filter: blur(2px);
-    mix-blend-mode: screen; /* Làm sáng rực */
-    animation: spinHole 6s linear infinite;
-    mask: radial-gradient(circle, transparent 20%, black 70%);
-    -webkit-mask: radial-gradient(circle, transparent 20%, black 70%);
-}
-
-/* 3. Vòng Photon (Vòng ranh giới) */
-.photon-ring {
-    position: absolute; width: 95%; height: 95%;
-    border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 15px #fff, inset 0 0 20px #ffaa00;
-    z-index: 2;
-    filter: blur(1px);
-}
-
-/* 4. Chân trời sự kiện (Tâm đen) */
-.event-horizon {
-    position: absolute; width: 92%; height: 92%;
-    background-color: #000;
-    border-radius: 50%;
-    z-index: 3;
-    box-shadow: inset 0 0 30px #ff4500;
-}
-
-@keyframes spinHole { 
-    0% { transform: rotate(0deg); } 
-    100% { transform: rotate(360deg); } 
+@keyframes spinInfinite {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* KẾT THÚC: NUỐT CHỬNG MÀN HÌNH */
 #black-hole.consume-screen {
     transition: transform 1.5s ease-in;
-    transform: translate(-50%, -50%) scale(60) !important; /* Scale cực đại */
-    z-index: 9999; /* Đè lên tất cả */
+    transform: translate(-50%, -50%) scale(60) !important; 
+    z-index: 9999; 
 }
-#black-hole.consume-screen .event-horizon {
-    background: #000; 
-    box-shadow: none;
+#black-hole.consume-screen .rotating-hole {
+    /* Khi nuốt màn hình có thể làm mờ hoặc tăng sáng */
+    filter: brightness(0); 
 }
 
 /* =========================================
@@ -147,27 +107,15 @@ body {
     font-size: 15vw; color: #fff; font-weight: 900;
     z-index: 30; display: none;
     text-shadow: 0 0 30px #ff4500;
-
     --start-scale: 3;
 }
 
-.number-sucked {
-    animation: numberFall 0.8s ease-in forwards;
-}
+.number-sucked { animation: numberFall 0.8s ease-in forwards; }
 
 @keyframes numberFall {
-    0% {
-        transform: translate(-50%, -50%) scale(var(--start-scale)); 
-        opacity: 0; 
-    }
-    20% {
-        transform: translate(-50%, -50%) scale(var(--start-scale)); 
-        opacity: 1; 
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(0) rotate(-180deg); 
-        opacity: 0; 
-    }
+    0% { transform: translate(-50%, -50%) scale(var(--start-scale)); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(var(--start-scale)); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
 }
 
 /* BÀN TAY */
@@ -188,14 +136,11 @@ body {
 
 .hand-icon.active {
     color: #fff;
-    /* Glow Cam lửa */
     text-shadow: 0 0 20px #ff8c00, 0 0 40px #ff0000;
     transform: scaleX(var(--flip)) scale(1.2);
 }
 
-/* =========================================
-   CONTROL PANEL
-   ========================================= */
+/* CONTROL PANEL */
 .control-panel {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     height: 100vh; background: #111; color: #fff;

@@ -26,11 +26,8 @@
             <canvas id="cable-canvas"></canvas>
             
             <div id="black-hole">
-                <div class="swirl-outer"></div>    <!-- MỚI: Xoáy ngoài -->
-                <div class="swirl-inner"></div>    <!-- MỚI: Xoáy trong -->
-                <div class="photon-ring"></div>
-                <div class="event-horizon"></div>
-            </div>
+            <img src="image/blackhold.png" class="rotating-hole" alt="Black Hole">
+        </div>
         </div>
 
         <div id="countdown-display">10</div>
@@ -52,6 +49,7 @@
         <audio id="start-audio" loop preload="auto"><source src="sounds/start.mp3" type="audio/mpeg"></audio>
         <audio id="hand-audio" preload="auto"><source src="sounds/hand.mp3" type="audio/mpeg"></audio>
         <audio id="countdown-audio" preload="auto"><source src="sounds/countdown.mp3" type="audio/mpeg"></audio>
+        <audio id="waiting-audio" loop preload="auto"><source src="sounds/waiting.mp3" type="audio/mpeg"></audio>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
