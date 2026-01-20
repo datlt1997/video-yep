@@ -135,6 +135,9 @@ body {
 .hand-icon {
     font-size: 6vw; color: rgba(255, 255, 255, 0.2);
     transition: all 0.3s;
+    border: 10px solid;
+    padding: 15px;
+    border-radius: 50%;
 }
 .hand-left { transform: scaleX(-1); --flip: -1; }
 .hand-right { --flip: 1; }
@@ -143,6 +146,21 @@ body {
     color: #fff;
     text-shadow: 0 0 20px #ff8c00, 0 0 40px #ff0000;
     transform: scaleX(var(--flip)) scale(1.2);
+}
+
+.hand-left.active { animation: handLeftActive 0.8s infinite; }
+.hand-right.active { animation: handRightActive 0.8s infinite; }
+
+@keyframes handRightActive {
+    0% { transform: scale(0.95);}
+    50% { transform: scale(1.05); }
+    100% { transform: scale(0.95) }
+}
+
+@keyframes handLeftActive {
+    0% { transform: scaleX(var(--flip)) scale(0.95);}
+    50% { transform: scaleX(var(--flip)) scale(1.05); }
+    100% { transform: scaleX(var(--flip)) scale(0.95) }
 }
 
 /* CONTROL PANEL */
