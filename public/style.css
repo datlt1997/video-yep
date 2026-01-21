@@ -125,7 +125,7 @@ body {
 
 /* BÀN TAY */
 #hands-wrapper {
-    position: absolute; bottom: 10vh; left: 0; width: 100%;
+    position: absolute; bottom: 32vh; left: 0; width: 100%;
     display: flex; justify-content: center; gap: 5vw;
     opacity: 0; transform: translateY(50px);
     transition: all 1s ease-out;
@@ -133,9 +133,9 @@ body {
 #hands-wrapper.show { opacity: 1; transform: translateY(0); }
 
 .hand-icon {
-    font-size: 6vw; color: rgba(255, 255, 255, 0.2);
+    font-size: 3vw; color: rgba(255, 255, 255, 0.2);
     transition: all 0.3s;
-    border: 10px solid;
+    border: 6px solid;
     padding: 15px;
     border-radius: 50%;
 }
