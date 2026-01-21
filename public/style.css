@@ -125,7 +125,7 @@ body {
 
 /* BÀN TAY */
 #hands-wrapper {
-    position: absolute; bottom: 34vh; left: 0; width: 100%;
+    position: absolute; bottom: 36vh; left: 0; width: 100%;
     display: flex; justify-content: center; gap: 5vw;
     opacity: 0; transform: translateY(50px);
     transition: all 1s ease-out;
