@@ -251,7 +251,7 @@ if (isDisplay) {
             this.spiralRadiusMax = 40 + Math.random() * 20; 
             this.spiralFreq = 0.05;   
             this.phase = Math.random() * Math.PI * 2;      
-            this.size = 40 + Math.random() * 20; 
+            this.size = 30 + Math.random() * 10; 
             
             this.dead = false;
             this.reachedCenter = false; 
@@ -310,7 +310,7 @@ if (isDisplay) {
             activeHands.forEach(hand => {
                 const hRect = hand.getBoundingClientRect();
                 const hx = hRect.left + hRect.width / 2;
-                const hy = hRect.top + 80;
+                const hy = hRect.top + 60;
 
                 if (!hand.nextSpawnTime) hand.nextSpawnTime = now + Math.random() * 500;
 
